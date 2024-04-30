@@ -1,6 +1,7 @@
 #![warn(rust_2018_idioms)]
 #![warn(clippy::pedantic)]
 
+use std::borrow::{Borrow, Cow};
 use std::env;
 use std::error;
 use std::fs::File;
@@ -11,10 +12,12 @@ use serde_json::Deserializer;
 
 #[derive(Debug, Default, Deserialize, Serialize)]
 #[serde(rename_all = "camelCase")]
-struct EventArg {
+struct EventArg<'a> {
     #[serde(default)]
-    function_args: String,
-    location: String,
+    #[serde(borrow)]
+    function_args: Cow<'a, str>,
+    #[serde(borrow)]
+    location: Cow<'a, str>,
 }
 
 #[derive(Debug, Deserialize, PartialEq, Serialize)]
@@ -26,13 +29,14 @@ enum EventType {
 }
 
 #[derive(Debug, Deserialize, Serialize)]
-struct Event {
+struct Event<'a> {
     #[serde(default)]
-    args: Option<EventArg>,
+    args: Option<EventArg<'a>>,
     #[serde(default)]
     cat: String,
     #[serde(default)]
-    name: String,
+    #[serde(borrow)]
+    name: Cow<'a, str>,
     ph: EventType,
     pid: u32,
     tid: u32,
@@ -46,29 +50,22 @@ fn main() -> Result<(), Box<dyn error::Error>> {
         .get_matches();
 
     if let Some(value) = matches.value_of("f") {
-        let mut stack = Vec::<Event>::new();
+        let mut stack = Vec::<Event<'_>>::new();
         let file = File::open(value)?;
         let deserializer = Deserializer::from_reader(file);
 
-        let stream = deserializer.into_iter::<Vec<Event>>();
+        let stream = deserializer.into_iter::<Vec<Event<'_>>>();
 
         for value in stream {
-            let value = value?;
-            //     match value {
-            //         Value::Array(ref array) => for a in array {},
-            //         Value::Number(ref num) => {}
-            //         Value::Object(ref obj) => {}
-            //         _ => panic!("not considered"),
-            //     }
-            for event in value {
-                // println!("{:?}", event);
+            for event in value? {
+                // eprintln!("{}", matches!(&event.name, Cow::Borrowed(_)));
                 if event.ph == EventType::Begin {
                     stack.push(event);
                 } else if event.ph == EventType::End {
                     let trace = stack
                         .iter()
-                        .map(|e| e.name.clone())
-                        .collect::<Vec<String>>()
+                        .map(|e| e.name.borrow())
+                        .collect::<Vec<&str>>()
                         .join(";");
                     if let Some(begin_event) = stack.pop() {
                         println!("{} {}", trace, event.ts - begin_event.ts);
