@@ -18,7 +18,7 @@ struct EventArg<'a> {
     #[serde(borrow)]
     function_args: Cow<'a, str>,
     #[serde(borrow)]
-    location: Cow<'a, str>,
+    location: Option<Cow<'a, str>>,
 }
 
 #[derive(Debug, Deserialize, PartialEq, Serialize)]
