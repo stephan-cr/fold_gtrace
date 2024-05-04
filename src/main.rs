@@ -27,6 +27,20 @@ enum EventType {
     Begin,
     #[serde(rename = "E")]
     End,
+    #[serde(rename = "X")]
+    Complete,
+    #[serde(rename = "i")]
+    Instant,
+    #[serde(rename = "C")]
+    Counter,
+    #[serde(rename = "P")]
+    Sample,
+    #[serde(rename = "M")]
+    Metadata,
+    #[serde(rename = "R")]
+    Mark,
+    #[serde(rename = "c")]
+    ClockSync,
 }
 
 #[derive(Debug, Deserialize, Serialize)]
