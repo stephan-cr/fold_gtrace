@@ -5,8 +5,9 @@ use std::borrow::{Borrow, Cow};
 use std::env;
 use std::error;
 use std::fs::File;
+use std::path::PathBuf;
 
-use clap::{crate_name, crate_version, Arg, Command};
+use clap::{crate_name, crate_version, value_parser, Arg, Command};
 use serde::{Deserialize, Serialize};
 use serde_json::Deserializer;
 
@@ -46,10 +47,14 @@ struct Event<'a> {
 fn main() -> Result<(), Box<dyn error::Error>> {
     let matches = Command::new(crate_name!())
         .version(crate_version!())
-        .arg(Arg::new("f").takes_value(true))
+        .arg(
+            Arg::new("f")
+                .required(true)
+                .value_parser(value_parser!(PathBuf)),
+        )
         .get_matches();
 
-    if let Some(value) = matches.value_of("f") {
+    if let Some(value) = matches.get_one::<PathBuf>("f") {
         let mut stack = Vec::<Event<'_>>::new();
         let file = File::open(value)?;
         let deserializer = Deserializer::from_reader(file);
@@ -58,7 +63,6 @@ fn main() -> Result<(), Box<dyn error::Error>> {
 
         for value in stream {
             for event in value? {
-                // eprintln!("{}", matches!(&event.name, Cow::Borrowed(_)));
                 if event.ph == EventType::Begin {
                     stack.push(event);
                 } else if event.ph == EventType::End {
