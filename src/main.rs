@@ -2,10 +2,9 @@
 #![warn(clippy::pedantic)]
 
 use std::borrow::{Borrow, Cow};
-use std::env;
-use std::error;
 use std::fs::File;
 use std::path::PathBuf;
+use std::{env, error};
 
 use clap::{crate_name, crate_version, value_parser, Arg, Command};
 use serde::{Deserialize, Serialize};
@@ -99,7 +98,9 @@ fn process_event<'a>(event: Event<'a>, stack: &mut Vec<Event<'a>>) {
             } else {
                 ""
             },
-            event.dur.unwrap()
+            event
+                .dur
+                .expect("Complete events are expected to have a \"dur\" field")
         );
     }
 }
@@ -126,7 +127,6 @@ fn main() -> Result<(), Box<dyn error::Error>> {
         let deserializer = Deserializer::from_reader(&file);
 
         if matches.contains_id("object") {
-            let deserializer = Deserializer::from_reader(&file);
             let stream = deserializer.into_iter::<Top<'_>>();
             for value in stream {
                 for event in value?.trace_events {
